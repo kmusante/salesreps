@@ -43,7 +43,7 @@
 	</div>
 	
 	{% for rep in salesreps %}
-		<a href="{{url_for('showSalesReps', salesreps_id=salesreps.id)}}">
+		<a href="{{url_for('showSalesReps', rep_id=rep.id)}}">
 			<div class="row">
 				<div class="col-md-1"></div>
 					<div class="col-md-10 restaurant-list">
