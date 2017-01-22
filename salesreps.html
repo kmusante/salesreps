@@ -41,15 +41,17 @@
 		</div>
 		<div class="col-md-1"></div>
 	</div>
-	{% for salesrep in salesreps %}
-		<a href = "{{url_for('showsale', salesrep_id = salesreps.id)}}">
+	
+	{% for rep in salesreps %}
+		<a href="{{url_for('showSalesReps', salesreps_id=salesreps.id)}}">
 			<div class="row">
 				<div class="col-md-1"></div>
 					<div class="col-md-10 restaurant-list">
-						<h3>{{salesrep.name}}</h3>
+						<h3>{{rep.name}}</h3>
 					</div>
 				<div class="col-md-1"></div>
 			</div>
 		</a>
 	{% endfor %}
+	
 {% endblock %}
