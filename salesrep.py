@@ -88,7 +88,11 @@ def showRep(salesrep_id):
 @app.route('/salesreps/<int:salesrep_id>/repdetails/add/', methods=['GET', 'POST'])
 def addRepDetails(salesrep_id):
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
+    if salesrepdetails==session.query(RepDetails).filter_by(salesrep_id=salesrep_id):
+        print "*****************", salesrepdetails, salesrepdetails.payout
+        print salesrep
     if request.method == 'POST':
+    	#this line 93 might be messed up??
         newItem = RepDetails(name=salesrep.name, payout=request.form[
                            'payout'], sub_reps=request.form['sub_reps'], contractor=request.form['contractor'], salesrep_id=salesrep_id)
         session.add(newItem)
@@ -98,11 +102,11 @@ def addRepDetails(salesrep_id):
     else:
         return render_template('addRepDetails.html', salesrep_id=salesrep_id, salesrep_name=salesrep.name)
 
-# Edit a menu item
+# Edit a rep details
 
 
 @app.route('/salesreps/<int:salesrep_id>/repdetails/edit', methods=['GET', 'POST'])
-def editRepDetails(salesrep_id, salesrep_name):
+def editRepDetails(salesrep_id):
 
     editedRep = session.query(RepDetails).filter_by(id=salesrep_id).one()
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
@@ -121,21 +125,6 @@ def editRepDetails(salesrep_id, salesrep_name):
         return redirect(url_for('showRep', salesrep_id=salesrep_id))
     else:
         return render_template('editSalesReps.html', salesrep_id=salesrep_id, salesrep_name=salesrep.name, name=editedRep)
-
-
-# Delete a menu item
-@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete', methods=['GET', 'POST'])
-def deleteMenuItem(restaurant_id, menu_id):
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-    itemToDelete = session.query(MenuItem).filter_by(id=menu_id).one()
-    if request.method == 'POST':
-        session.delete(itemToDelete)
-        session.commit()
-        flash('Menu Item Successfully Deleted')
-        return redirect(url_for('showMenu', restaurant_id=restaurant_id))
-    else:
-        return render_template('deleteMenuItem.html', item=itemToDelete)
-
 
 
 
