@@ -82,8 +82,8 @@ def showRep(salesrep_id):
 @app.route('/salesreps/<int:salesrep_id>/repdetails/add/', methods=['GET', 'POST'])
 def addRepDetails(salesrep_id):
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
-    salesrepdetails=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).first()
-    if request.method == 'POST':
+    salesrepdetails=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).all()
+    if request.method == 'POST' and len(salesrepdetails)<=1:
         newItem = RepDetails(name=salesrep.name, payout=request.form[
                    'payout'], sub_reps=request.form['sub_reps'], 
                    contractor=request.form['contractor'], salesrep_id=salesrep_id)
@@ -124,10 +124,10 @@ def editRepDetails(salesrep_id):
 @app.route('/salesreps/<int:salesrep_id>/repdetails/delete', methods=['GET', 'POST'])
 def deleteRepDetails(salesrep_id):
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
-    details=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).all()
+    details=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).first()
     if request.method == 'POST':
         session.delete(details)
-        flash('%s Successfully Deleted Details for' % salesrep.name)
+        flash('Successfully Deleted Details for %s' % salesrep.name)
         session.commit()
         return redirect(url_for('showRep', salesrep_id=salesrep_id))
     else:
