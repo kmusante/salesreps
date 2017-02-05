@@ -54,9 +54,11 @@
 	</div>
 
 		{% if details !=[] %}
+		<h1>{{ addmessage }}</h1>
 		<div class="row">
 			<div class="col-md-7">
 				<h2>Rep Details</h2>
+
 					{% for i in details %}
 
 							{% if i.name==salesrep.name %}
@@ -67,7 +69,7 @@
 									<h3>Sub Reps: {{i.sub_reps}}</h3>
 									<h3>Contractor: {{i.contractor}}</h3>
 									<a href='{{url_for('editRepDetails', salesrep_id = salesrep.id ) }}'>Edit Details</a> | 
-									<a href='{{url_for('deleteSalesRep', salesrep_id 	= salesrep.id ) }}'>Delete Details</a>
+									<a href='{{url_for('deleteRepDetails', salesrep_id 	= salesrep.id ) }}'>Delete Details</a>
 								</div>
 							{% endif %}
 					
