@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
-from salesrep_database import Base, SalesReps, RepDetails
+from salesrep2_database import Base, SalesReps, RepDetails, User
 from flask import session as login_session #needed for oauth
 import random  #needed for oauth
 import string  #needed for oauth
@@ -19,7 +19,7 @@ CLIENT_ID = json.loads(
 APPLICATION_NAME = "salesreps python project"
 
 # Connect to Database and create database session
-engine = create_engine('sqlite:///salesrep.db')
+engine = create_engine('sqlite:///salesreptwo.db')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -87,7 +87,7 @@ def gconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
-    stored_credentials = login_session.get('credentials.access_token')
+    stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
         response = make_response(json.dumps('Current user is already connected.'),
@@ -96,7 +96,7 @@ def gconnect():
         return response
 
     # Store the access token in the session for later use.
-    login_session['credentials.access_token'] = credentials
+    login_session['credentials'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
 
     # Get user info
@@ -121,12 +121,36 @@ def gconnect():
     print "done!"
     return output
 
+# helper functions to determine if user authorized to make changes
+# creates new user in database with info gathered from login session
+# returns ID of new user created
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'], picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+# if user_id is passed in it returns user which was queried
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+#returns either user id if email belongs to user in database or None
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+
  # DISCONNECT - Revoke a current user's token and reset their login_session
 
 
 @app.route('/gdisconnect')
 def gdisconnect():
-    access_token = login_session['access_token']
+    access_token = login_session.get('access_token')
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: ' 
     print login_session['username']
@@ -184,12 +208,15 @@ def showSalesReps():
 # Create a new sales rep
 @app.route('/salesreps/new/', methods=['GET', 'POST'])
 def newSalesReps():
+    if 'username' not in login_session:
+        return redirect('/login')
     if request.method == 'POST':
-        newSalesRep = SalesReps(name=request.form['name'])
-        session.add(newSalesRep)
-        flash('New Sales Representative %s Successfully Created' % newSalesRep.name)
-        session.commit()
-        return redirect(url_for('showSalesReps'))
+	    newSalesRep = SalesReps(name=request.form['name'],
+	    	user_id=login_session['user_id'])
+	    session.add(newSalesRep)
+	    flash('New Sales Representative %s Successfully Created' % newSalesRep.name)
+	    session.commit()
+	    return redirect(url_for('showSalesReps'))
     else:
         return render_template('newSalesReps.html')
 
@@ -197,6 +224,8 @@ def newSalesReps():
 # Edit a sales rep
 @app.route('/salesreps/<int:salesrep_id>/edit/', methods=['GET', 'POST'])
 def editSalesRep(salesrep_id):
+    if 'username' not in login_session:
+        return redirect('/login')
     editedSalesRep = session.query(
         SalesReps).filter_by(id=salesrep_id).one()
     if request.method == 'POST':
@@ -211,6 +240,8 @@ def editSalesRep(salesrep_id):
 # Delete a salesrep
 @app.route('/salesreps/<int:salesrep_id>/delete/', methods=['GET', 'POST'])
 def deleteSalesRep(salesrep_id):
+    if 'username' not in login_session:
+        return redirect('/login')
     repToDelete = session.query(
         SalesReps).filter_by(id=salesrep_id).one()
     if request.method == 'POST':
@@ -238,12 +269,15 @@ def showRep(salesrep_id):
 # Add Rep Details
 @app.route('/salesreps/<int:salesrep_id>/repdetails/add/', methods=['GET', 'POST'])
 def addRepDetails(salesrep_id):
+    if 'username' not in login_session:
+        return redirect('/login')
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
     salesrepdetails=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).all()
     if request.method == 'POST' and len(salesrepdetails)<1:
         newItem = RepDetails(name=salesrep.name, payout=request.form[
                    'payout'], sub_reps=request.form['sub_reps'], 
-                   contractor=request.form['contractor'], salesrep_id=salesrep_id)
+                   contractor=request.form['contractor'], salesrep_id=salesrep_id, 
+                   user_id=salesrep.user_id)
  
         session.add(newItem)
         session.commit()
@@ -258,7 +292,8 @@ def addRepDetails(salesrep_id):
 # Edit a rep details
 @app.route('/salesreps/<int:salesrep_id>/repdetails/edit', methods=['GET', 'POST'])
 def editRepDetails(salesrep_id):
-    #editedRep = session.query(RepDetails).filter_by(id=salesrep_id).first()
+    if 'username' not in login_session:
+        return redirect('/login')
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
     details=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).all()
     for i in details:
@@ -281,6 +316,8 @@ def editRepDetails(salesrep_id):
 # Delete a rep details
 @app.route('/salesreps/<int:salesrep_id>/repdetails/delete', methods=['GET', 'POST'])
 def deleteRepDetails(salesrep_id):
+    if 'username' not in login_session:
+        return redirect('/login')
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
     details=session.query(RepDetails).filter_by(salesrep_id=salesrep_id).first()
     if request.method == 'POST':
