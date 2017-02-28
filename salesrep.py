@@ -110,6 +110,12 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
+    # see if user exists....if not, make a new one
+    user_id = getUserID(data["email"])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
+
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
@@ -211,8 +217,7 @@ def newSalesReps():
     if 'username' not in login_session:
         return redirect('/login')
     if request.method == 'POST':
-	    newSalesRep = SalesReps(name=request.form['name'],
-	    	user_id=login_session['user_id'])
+	    newSalesRep = SalesReps(name=request.form['name'], user_id=login_session['user_id'])
 	    session.add(newSalesRep)
 	    flash('New Sales Representative %s Successfully Created' % newSalesRep.name)
 	    session.commit()
@@ -257,13 +262,14 @@ def deleteSalesRep(salesrep_id):
 @app.route('/salesreps/<int:salesrep_id>/repdetails')
 def showRep(salesrep_id):
     salesrep = session.query(SalesReps).filter_by(id=salesrep_id).one()
+    #creator=getUserInfo(salesrep.user_id)
     details = session.query(RepDetails).filter_by(
         salesrep_id=salesrep_id).all()
     addmessage=""
     if len(details)>=1:
     	addmessage= "Rep Details below. Delete or edit details to modify"
     return render_template('repdetails.html', salesrep=salesrep, details=details,
-    	addmessage=addmessage)
+    	addmessage=addmessage) #creator=creator)
 
 
 # Add Rep Details
